@@ -1,0 +1,37 @@
+[tool.ruff]
+# Local venv is 3.10; the Docker image runs 3.12. Lint for the lowest.
+target-version = "py310"
+line-length = 120
+extend-exclude = ["*/migrations/*", "venv", "staticfiles", "media"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes: unused imports/variables, undefined names
+    "I",    # import sorting
+    "B",    # bugbear: likely bugs
+    "UP",   # pyupgrade: modern syntax for the target version
+    "DJ",   # Django-specific checks
+    "SIM",  # simplifications
+    "C4",   # cleaner comprehensions
+    "BLE",  # blind `except Exception`
+    "RUF",  # ruff's own rules
+]
+ignore = [
+    "E501",    # line length is the formatter's job
+    "RUF001",  # Nepali text and the "•" in masked phone numbers are intentional
+    "RUF002",
+    "RUF003",
+    "RUF012",  # DRF/Django class attributes (permission_classes = [...]) are mutable by design
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Settings modules layer on each other with `from .base import *`.
+"config/settings/*" = ["F403", "F405"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+
+[tool.ruff.format]
+quote-style = "double"

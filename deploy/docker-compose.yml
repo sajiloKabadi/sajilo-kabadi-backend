@@ -1,0 +1,67 @@
+# SajiloKabadi dev server: /opt/sajilokabadi/docker-compose.yml
+#
+# Copied here by GitHub Actions on every deploy; edit it in the repo, not on
+# the server. Secrets come from /opt/sajilokabadi/.env, which only exists on
+# the server.
+#
+# Always run compose through ./compose.sh, which sets API_IMAGE to the image
+# that is currently deployed (from .current_image).
+#
+# NEVER run `docker compose down -v`: -v deletes the postgres_data volume,
+# i.e. the whole database.
+
+name: sajilokabadi
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sajilokabadi-postgres
+    restart: unless-stopped
+    # Values are interpolated from .env; only these three reach this container.
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # No `ports:` on purpose. The database is reachable only from containers
+    # on the internal network, as postgres:5432.
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    image: ${API_IMAGE:?API_IMAGE is not set - use ./compose.sh or ./deploy.sh}
+    container_name: sajilokabadi-api
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Published on the loopback interface only: Nginx on the host can reach
+    # it, the internet cannot.
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./media:/app/media
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/', timeout=4)"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+networks:
+  backend:
+
+volumes:
+  postgres_data:
+    # Fixed name so it survives project renames and is easy to find:
+    # `docker volume inspect sajilokabadi_postgres_data`
+    name: sajilokabadi_postgres_data

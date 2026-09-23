@@ -1,0 +1,24 @@
+# Secrets and local state must never end up in the image.
+.env
+.env.*
+!.env.example
+*.sqlite3
+media/
+logs/
+staticfiles/
+
+# Local tooling
+.git/
+.github/
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.vscode/
+.idea/
+
+# Deployment files live on the server, not in the image
+deploy/
+docs/
+Dockerfile
+.dockerignore
