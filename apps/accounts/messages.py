@@ -63,6 +63,42 @@ AUTH_MESSAGES = {
         "en": "Profile",
         "ne": "प्रोफाइल",
     },
+    "signed_out": {
+        "en": "Signed out",
+        "ne": "साइन आउट भयो",
+    },
+    "device_registered": {
+        "en": "Device registered",
+        "ne": "डिभाइस दर्ता भयो",
+    },
+    "avatar_updated": {
+        "en": "Photo updated",
+        "ne": "फोटो अद्यावधिक भयो",
+    },
+    "avatar_removed": {
+        "en": "Photo removed",
+        "ne": "फोटो हटाइयो",
+    },
+    "avatar_invalid": {
+        "en": "Upload a JPEG or PNG image up to 5 MB.",
+        "ne": "५ MB सम्मको JPEG वा PNG फोटो अपलोड गर्नुहोस्।",
+    },
+    "summary_wallet": {
+        "en": "Sajilo wallet",
+        "ne": "साजिलो वालेट",
+    },
+    "summary_rate_alerts": {
+        "en": "Rate alerts on for {names}",
+        "ne": "{names} को दर सूचना सक्रिय",
+    },
+    "summary_pickup_updates": {
+        "en": "Pickup updates on",
+        "ne": "पिकअप अपडेट सक्रिय",
+    },
+    "summary_notifications_off": {
+        "en": "Notifications off",
+        "ne": "सूचनाहरू बन्द",
+    },
     "profile_updated": {
         "en": "Profile updated",
         "ne": "प्रोफाइल अद्यावधिक भयो",

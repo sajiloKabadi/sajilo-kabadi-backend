@@ -724,6 +724,14 @@ crontab -e                   # choose nano, then add:
 
 That is 02:30 every night, Nepal time (step 5 set the server's timezone).
 
+**Scheduled server jobs** (expire pickups nobody accepted, set silent
+collectors offline, prune location pings older than 24 h). Add this line to
+the same crontab:
+
+```bash
+* * * * * cd /opt/sajilokabadi && ./compose.sh exec -T api python manage.py housekeeping >> /opt/sajilokabadi/backups/housekeeping.log 2>&1
+```
+
 **Copy one off the server now and then** (dumps on the same disk do not
 survive losing the instance):
 
