@@ -35,6 +35,14 @@ COMMON_MESSAGES = {
         "en": "Too many requests. Try again in {wait}.",
         "ne": "धेरै अनुरोध भयो। {wait} पछि फेरि प्रयास गर्नुहोस्।",
     },
+    "conflict": {
+        "en": "This can't be done right now.",
+        "ne": "यो काम अहिले गर्न मिल्दैन।",
+    },
+    "app_update_required": {
+        "en": "Please update the app to continue.",
+        "ne": "कृपया अगाडि बढ्न एप अपडेट गर्नुहोस्।",
+    },
     "server_error": {
         "en": "Something went wrong. Please try again.",
         "ne": "केही गडबड भयो। कृपया फेरि प्रयास गर्नुहोस्।",

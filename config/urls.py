@@ -9,17 +9,18 @@ from drf_spectacular.views import (
 
 from apps.common.views import health
 
-# Each business module owns its own urls.py; this file only wires prefixes.
+# Each module owns its paths; they are mounted exactly as the contract lists
+# them under /api/v1 (v2 contract, section 2.1).
 api_v1_patterns = [
     path("auth/", include("apps.accounts.auth_urls")),
-    path("accounts/", include("apps.accounts.urls")),
-    path("sellers/", include("apps.sellers.urls")),
-    path("collectors/", include("apps.collectors.urls")),
-    path("materials/", include("apps.materials.urls")),
-    path("pickups/", include("apps.pickups.urls")),
-    path("wallet/", include("apps.wallet.urls")),
-    path("dropoff/", include("apps.dropoff.urls")),
-    path("impact/", include("apps.impact.urls")),
+    path("", include("apps.accounts.urls")),
+    path("", include("apps.notifications.urls")),
+    path("", include("apps.sellers.urls")),
+    path("", include("apps.materials.urls")),
+    path("", include("apps.pickups.urls")),
+    path("", include("apps.dropoff.urls")),
+    path("", include("apps.wallet.urls")),
+    path("", include("apps.collectors.urls")),
 ]
 
 urlpatterns = [

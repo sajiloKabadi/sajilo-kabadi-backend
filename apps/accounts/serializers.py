@@ -1,7 +1,7 @@
 import re
+import uuid
 
 from django.conf import settings
-from django.utils import timezone
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -10,6 +10,7 @@ from .models import User, UserDevice
 
 PHONE_RE = re.compile(r"^9[0-9]{9}$")
 OTP_ROLES = [User.Role.SELLER, User.Role.COLLECTOR]
+FAMILY_CLAIM = "fam"
 
 
 class PhoneField(serializers.CharField):
@@ -65,57 +66,54 @@ class TokenRefreshRequestSerializer(serializers.Serializer):
     refresh = serializers.CharField()
 
 
-class UserSerializer(serializers.ModelSerializer):
-    """The `user` object from the contract (section 4, response 200)."""
+class ProfileUpdateSerializer(serializers.Serializer):
+    """PATCH /me/ (contract 4.2). Only sent fields change."""
 
-    phone = serializers.CharField(source="phone_number", read_only=True)
-    full_name = serializers.SerializerMethodField()
-    first_name = serializers.CharField(read_only=True)
-    initials = serializers.CharField(read_only=True)
-    avatar_url = serializers.SerializerMethodField()
-    is_profile_complete = serializers.BooleanField(read_only=True)
-    created_at = serializers.SerializerMethodField()
+    first_name = serializers.CharField(required=False, max_length=64)
+    full_name = serializers.CharField(required=False, allow_blank=True, max_length=80)
+    language = serializers.ChoiceField(choices=User.Language.values, required=False)
+    email = serializers.EmailField(required=False, allow_null=True, allow_blank=True)
 
-    class Meta:
-        model = User
-        fields = [
-            "id",
-            "phone",
-            "country_code",
-            "full_name",
-            "first_name",
-            "initials",
-            "email",
-            "avatar_url",
-            "role",
-            "language",
-            "is_profile_complete",
-            "created_at",
-        ]
-        read_only_fields = fields
+    def validate_first_name(self, value):
+        value = value.strip()
+        if len(value) < 2:
+            raise serializers.ValidationError("At least 2 characters")
+        if len(value) > 24:
+            raise serializers.ValidationError("At most 24 characters")
+        return value
 
-    def get_full_name(self, user):
-        return user.full_name.strip() or None
+    def validate_full_name(self, value):
+        return " ".join(value.split())
 
-    def get_avatar_url(self, user):
-        if not user.avatar:
-            return None
-        request = self.context.get("request")
-        return request.build_absolute_uri(user.avatar.url) if request else user.avatar.url
-
-    def get_created_at(self, user):
-        # Local (Asia/Kathmandu) time, whole seconds: "2026-08-01T09:15:00+05:45"
-        return timezone.localtime(user.created_at).replace(microsecond=0).isoformat()
+    def validate_email(self, value):
+        return value or None
 
 
-class UserUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ["full_name", "email", "language", "avatar"]
+class RegisterDeviceSerializer(serializers.Serializer):
+    """PUT /me/device/ (contract 4.4)."""
+
+    device_id = serializers.CharField(max_length=255)
+    platform = serializers.ChoiceField(choices=UserDevice.Platform.values)
+    fcm_token = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    app_version = serializers.CharField(max_length=32, required=False, allow_blank=True, default="")
+
+
+class LogoutSerializer(serializers.Serializer):
+    """POST /auth/logout/ (contract 3.5)."""
+
+    refresh = serializers.CharField(required=False, allow_blank=True)
+    device_id = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=255)
+
+
+class AvatarUploadSerializer(serializers.Serializer):
+    file = serializers.ImageField()
 
 
 def tokens_for_user(user) -> dict:
+    """Mint a new sign-in session. Every refresh token rotated from this one
+    keeps the same `fam` claim (see RevokedTokenFamily)."""
     refresh = RefreshToken.for_user(user)
+    refresh[FAMILY_CLAIM] = uuid.uuid4().hex
     return {
         "access": str(refresh.access_token),
         "refresh": str(refresh),

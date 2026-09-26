@@ -25,3 +25,22 @@ class UUIDPrimaryKeyModel(models.Model):
 class BaseModel(UUIDPrimaryKeyModel, TimeStampedModel):
     class Meta:
         abstract = True
+
+
+class IdempotencyKey(models.Model):
+    """First response to a POST sent with an `Idempotency-Key` header, replayed
+    for any repeat of the same key by the same user on the same path."""
+
+    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="+")
+    key = models.CharField(max_length=64)
+    scope = models.CharField(max_length=200)
+    status_code = models.PositiveSmallIntegerField()
+    response = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = "common_idempotency_key"
+        constraints = [models.UniqueConstraint(fields=["user", "key", "scope"], name="unique_idempotency_key")]
+
+    def __str__(self):
+        return f"{self.scope} [{self.key}]"

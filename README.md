@@ -62,11 +62,40 @@ sajilokabadi/
     └── notifications/
 ```
 
-## Auth flow (phone + OTP)
+## API (contract v2, 2026-09-24)
 
-Contract: `docs/api/auth_and_dashboard.md` (sign-in half). All responses use
-the `{success, message, data}` / `{success, message, error_code, errors}`
-envelope, and `message` follows `Accept-Language` (`en` or `ne`).
+Base URL `https://api.sajilokabadi.com/api/v1`; Swagger at `/api/docs/`. Every
+response uses the `{success, message, data}` envelope (errors add `error_code`
+and `errors`, with `data` null unless documented), `message` follows
+`Accept-Language` (`en`/`ne`), and lists use `{items, page, page_size, total,
+has_next}`.
+
+| Area | Endpoints | Module |
+|---|---|---|
+| Sign-in | `/auth/otp/request/`, `/auth/otp/resend/`, `/auth/otp/verify/`, `/auth/token/refresh/`, `/auth/logout/` | `accounts` |
+| Profile | `/me/`, `/me/avatar/`, `/me/device/`, `/me/notification-settings/` | `accounts`, `notifications` |
+| Seller | `/seller/dashboard/`, `/me/addresses/` | `sellers` |
+| Rates | `/rates/` | `materials` |
+| Selling | `/pickups/availability/`, `/pickups/quote/`, `/pickups/`, `/pickups/{id}/`, `.../cancel/`, `.../rating/` | `pickups` |
+| Weigh-in | `/pickups/{id}/weigh-sheet/`, `.../flags/`, `.../accept/` | `pickups` |
+| Drop-off | `/dropoff-centers/` | `dropoff` |
+| Wallet | `/wallet/`, `/wallet/transactions/`, `/wallet/withdrawals/`, `/wallet/statement/`, `/me/payout-methods/` | `wallet` |
+| Collector | `/collector/dashboard/`, `/collector/status/`, `/collector/jobs/`, `/collector/location/`, `/collector/pickups/{id}/...` | `collectors` |
+| Disputes | `/disputes/` | `pickups` |
+
+Money only moves through `apps/wallet/services.py` (ledger rows, locked
+wallet, cached balance). Pickup state changes live in
+`apps/pickups/services.py`, each under a row lock. `Idempotency-Key` is
+honoured on booking, accepting a sheet, accepting a job and withdrawing.
+
+Support work happens in the Django admin: approve collectors, verify bank
+accounts, set material rates (add a rate row), close disputes, and mark
+withdrawals transferred or failed.
+
+`python manage.py housekeeping` expires unaccepted pickups, sets silent
+collectors offline and prunes old rows; run it every minute from cron.
+
+### Sign-in flow
 
 1. `POST /api/v1/auth/otp/request/` — `{country_code, phone, role, language}`
    → sends a 6-digit code over Aakash SMS, returns `otp_request_id`.

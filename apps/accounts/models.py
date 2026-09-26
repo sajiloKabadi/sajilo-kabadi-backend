@@ -27,6 +27,8 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
     phone_number = models.CharField(max_length=20, unique=True, db_index=True)
     country_code = models.CharField(max_length=5, default="+977")
     full_name = models.CharField(max_length=150, blank=True)
+    # Set on the Nickname screen; shown as "NAMASTE, BINA".
+    first_name = models.CharField(max_length=24, blank=True, default="")
     email = models.EmailField(null=True, blank=True)  # noqa: DJ001 - contract returns "email": null
     avatar = models.ImageField(upload_to="avatars/", null=True, blank=True)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.SELLER)
@@ -47,22 +49,32 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
         return self.full_name or self.phone_number
 
     @property
-    def first_name(self) -> str | None:
-        parts = self.full_name.split()
-        return parts[0] if parts else None
+    def display_first_name(self) -> str | None:
+        return self.first_name.strip() or None
 
     @property
     def initials(self) -> str | None:
-        parts = self.full_name.split()
-        if not parts:
-            return None
-        if len(parts) == 1:
-            return parts[0][0].upper()
-        return (parts[0][0] + parts[-1][0]).upper()
+        """First letter of the first two words of full_name, or of first_name
+        when there is no full name ("Bina Shrestha" -> "BS"). Matches
+        AppSession.initialsOf in the app."""
+        words = self.full_name.split() or self.first_name.split()
+        return "".join(word[0] for word in words[:2]).upper() or None
 
     @property
     def is_profile_complete(self) -> bool:
-        return bool(self.full_name.strip())
+        return bool(self.first_name.strip())
+
+    @property
+    def phone_masked(self) -> str:
+        return f"{self.country_code} {self.phone_number[:2]}•••• {self.phone_number[-4:]}"
+
+    @property
+    def is_seller(self) -> bool:
+        return self.role == self.Role.SELLER
+
+    @property
+    def is_collector(self) -> bool:
+        return self.role == self.Role.COLLECTOR
 
 
 class OTPRequest(BaseModel):
@@ -138,3 +150,19 @@ class UserDevice(BaseModel):
 
     def __str__(self):
         return f"{self.user} - {self.platform or 'unknown'} {self.device_id}"
+
+
+class RevokedTokenFamily(models.Model):
+    """A sign-in session whose refresh tokens are all dead. Every refresh
+    token minted from one OTP verify shares a `fam` claim; reusing an already
+    rotated token revokes the whole family (contract 14), and so does logout."""
+
+    family = models.CharField(max_length=32, unique=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "accounts_revoked_token_family"
+
+    def __str__(self):
+        return f"Revoked session {self.family[:8]} ({self.user_id})"
